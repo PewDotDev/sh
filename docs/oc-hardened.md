@@ -17,6 +17,7 @@ curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash
 - Configures UFW (SSH only by default)
 - Installs/configures `fail2ban` and `unattended-upgrades`
 - Runs OpenClaw install as the dedicated user
+- Automatically switches to the dedicated user shell after OpenClaw onboarding so you can run pairing commands (unless `--no-switch-user` is set)
 
 ## Requirements
 
