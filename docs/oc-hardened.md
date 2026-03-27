@@ -7,7 +7,7 @@ Back to repo index: [`README.md`](../README.md)
 ## Quick Start
 
 ```bash
-curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash
 ```
 
 ## What It Does
@@ -31,13 +31,13 @@ curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash
 Default:
 
 ```bash
-curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash
 ```
 
 Custom user + SSH port:
 
 ```bash
-curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash -s -- \
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- \
   --user myadmin \
   --ssh-port 2222
 ```
@@ -45,7 +45,7 @@ curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash -s -- \
 Pass your public key directly:
 
 ```bash
-curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash -s -- \
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- \
   --user myadmin \
   --authorized-key "ssh-ed25519 AAAA... you@laptop"
 ```
@@ -53,13 +53,13 @@ curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash -s -- \
 Allow web ports (`80`, `443`):
 
 ```bash
-curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash -s -- --allow-web-ports
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- --allow-web-ports
 ```
 
 Dry run:
 
 ```bash
-curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash -s -- --dry-run
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- --dry-run
 ```
 
 ## Options
@@ -95,13 +95,13 @@ Use one of these:
 Skip password setup (recommended for key-based SSH):
 
 ```bash
-curl -fsSL https://script.pew.dev/oc-hardened.sh | sudo bash -s -- --skip-user-password
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- --skip-user-password
 ```
 
 Or run without piping so `passwd` can prompt normally:
 
 ```bash
-curl -fsSLo /tmp/oc-hardened.sh https://script.pew.dev/oc-hardened.sh
+curl -fsSLo /tmp/oc-hardened.sh https://sh.pew.dev/oc-hardened.sh
 sudo bash /tmp/oc-hardened.sh
 ```
 
