@@ -391,18 +391,15 @@ EOF
 }
 
 reload_ssh_service() {
-  local ssh_service
-
-  if systemctl list-unit-files --type=service | grep -q '^ssh\.service'; then
-    ssh_service="ssh"
-  elif systemctl list-unit-files --type=service | grep -q '^sshd\.service'; then
-    ssh_service="sshd"
-  else
-    die "Could not find ssh or sshd systemd service"
+  # Some cloud images do not pre-create this runtime dir until ssh.service starts.
+  # Ensure it exists so `sshd -t` does not fail with "Missing privilege separation directory".
+  run_cmd install -d -m 755 -o root -g root /run/sshd
+  run_cmd sshd -t
+  if run_shell "systemctl reload ssh || systemctl restart ssh || systemctl reload sshd || systemctl restart sshd"; then
+    return 0
   fi
 
-  run_cmd sshd -t
-  run_shell "systemctl reload ${ssh_service} || systemctl restart ${ssh_service}"
+  die "Failed to reload/restart SSH daemon via systemctl (tried ssh and sshd services)"
 }
 
 pre_allow_ssh_port_in_firewall() {
