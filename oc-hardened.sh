@@ -214,10 +214,10 @@ ensure_target_user() {
     log "User '$TARGET_USER' already exists"
   else
     log "Creating user '$TARGET_USER'"
-    run_cmd adduser --disabled-password --gecos "" "$TARGET_USER"
+    run_cmd adduser --disabled-password --gecos "" "$TARGET_USER" >/dev/null
   fi
 
-  run_cmd usermod -aG sudo "$TARGET_USER"
+  run_cmd usermod -aG sudo "$TARGET_USER" >/dev/null
 
   user_home="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
   if [[ -z "$user_home" ]] && ((DRY_RUN)); then
@@ -285,6 +285,9 @@ ensure_target_authorized_keys() {
   local target_ssh_dir="${user_home}/.ssh"
   local target_auth_keys="${target_ssh_dir}/authorized_keys"
   local root_auth_keys="/root/.ssh/authorized_keys"
+  local invoking_user="${SUDO_USER:-}"
+  local invoking_user_home=""
+  local invoking_user_auth_keys=""
 
   run_cmd install -d -m 700 -o "$TARGET_USER" -g "$TARGET_USER" "$target_ssh_dir"
 
@@ -314,15 +317,35 @@ ensure_target_authorized_keys() {
   if [[ -s "$target_auth_keys" ]]; then
     log "Found SSH key(s) for '$TARGET_USER'"
   else
-    if [[ -s "$root_auth_keys" ]]; then
+    if [[ -n "$invoking_user" && "$invoking_user" != "root" ]]; then
+      invoking_user_home="$(getent passwd "$invoking_user" | cut -d: -f6 || true)"
+      if [[ -n "$invoking_user_home" ]]; then
+        invoking_user_auth_keys="${invoking_user_home}/.ssh/authorized_keys"
+      fi
+    fi
+
+    if [[ -n "$invoking_user_auth_keys" && -s "$invoking_user_auth_keys" ]]; then
+      log "Copying $invoking_user authorized_keys to '$TARGET_USER' to prevent lockout"
+      run_cmd cp "$invoking_user_auth_keys" "$target_auth_keys"
+      run_cmd chown "$TARGET_USER:$TARGET_USER" "$target_auth_keys"
+      run_cmd chmod 600 "$target_auth_keys"
+    elif [[ -z "$invoking_user_auth_keys" && -s "$root_auth_keys" ]]; then
       log "Copying root authorized_keys to '$TARGET_USER' to prevent lockout"
       run_cmd cp "$root_auth_keys" "$target_auth_keys"
       run_cmd chown "$TARGET_USER:$TARGET_USER" "$target_auth_keys"
       run_cmd chmod 600 "$target_auth_keys"
     elif ((DRY_RUN)); then
-      log "[dry-run] no SSH keys found yet for '$TARGET_USER'; non-dry-run would abort before SSH hardening"
+      if [[ -n "$invoking_user_auth_keys" ]]; then
+        log "[dry-run] no SSH keys found yet for '$TARGET_USER' in target or $invoking_user_auth_keys; non-dry-run would abort before SSH hardening"
+      else
+        log "[dry-run] no SSH keys found yet for '$TARGET_USER' in target or root; non-dry-run would abort before SSH hardening"
+      fi
     else
-      die "No SSH keys found for '$TARGET_USER' and /root/.ssh/authorized_keys is missing. Aborting before SSH hardening"
+      if [[ -n "$invoking_user_auth_keys" ]]; then
+        die "No SSH keys found for '$TARGET_USER'. Checked $target_auth_keys and $invoking_user_auth_keys. Aborting before SSH hardening"
+      else
+        die "No SSH keys found for '$TARGET_USER'. Checked $target_auth_keys and $root_auth_keys. Aborting before SSH hardening"
+      fi
     fi
   fi
 
@@ -351,7 +374,7 @@ write_ssh_hardening_config() {
   log "Writing SSH hardening config to $SSH_HARDEN_FILE"
 
   if ((DRY_RUN)); then
-    log "[dry-run] write file '$SSH_HARDEN_FILE' with Port $SSH_PORT, PermitRootLogin no, PasswordAuthentication no, KbdInteractiveAuthentication no, ChallengeResponseAuthentication no, PubkeyAuthentication yes, AllowUsers $TARGET_USER"
+    log "[dry-run] write file '$SSH_HARDEN_FILE' with Port $SSH_PORT, PermitRootLogin no, PasswordAuthentication no, KbdInteractiveAuthentication no, ChallengeResponseAuthentication no, PubkeyAuthentication yes"
     return
   fi
 
@@ -364,23 +387,19 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
 PubkeyAuthentication yes
-AllowUsers ${TARGET_USER}
 EOF
 }
 
 reload_ssh_service() {
-  local ssh_service
-
-  if systemctl list-unit-files --type=service | grep -q '^ssh\.service'; then
-    ssh_service="ssh"
-  elif systemctl list-unit-files --type=service | grep -q '^sshd\.service'; then
-    ssh_service="sshd"
-  else
-    die "Could not find ssh or sshd systemd service"
+  # Some cloud images do not pre-create this runtime dir until ssh.service starts.
+  # Ensure it exists so `sshd -t` does not fail with "Missing privilege separation directory".
+  run_cmd install -d -m 755 -o root -g root /run/sshd
+  run_cmd sshd -t
+  if run_shell "systemctl reload ssh || systemctl restart ssh || systemctl reload sshd || systemctl restart sshd"; then
+    return 0
   fi
 
-  run_cmd sshd -t
-  run_shell "systemctl reload ${ssh_service} || systemctl restart ${ssh_service}"
+  die "Failed to reload/restart SSH daemon via systemctl (tried ssh and sshd services)"
 }
 
 pre_allow_ssh_port_in_firewall() {

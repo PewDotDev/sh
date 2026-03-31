@@ -13,7 +13,7 @@ curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash
 ## What It Does
 
 - Creates/reuses a user (default: `openclaw`) and adds sudo access
-- Sets up SSH hardening (`PermitRootLogin no`, password auth off, key auth on, `AllowUsers <user>`)
+- Sets up SSH hardening (`PermitRootLogin no`, password auth off, key auth on)
 - Configures UFW (SSH only by default)
 - Installs/configures `fail2ban` and `unattended-upgrades`
 - Runs OpenClaw install as the dedicated user
@@ -23,8 +23,9 @@ curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash
 
 - Ubuntu `24.04`
 - Run as root (`sudo`)
-- You must have an SSH key for the target user, or one in `/root/.ssh/authorized_keys`
-- If no key exists, the script stops before SSH hardening (to avoid lockout)
+- You must have an SSH key for the target user, or for the invoking sudo user in `~/.ssh/authorized_keys`
+- If the script is run directly as root (no sudo user context), it falls back to `/root/.ssh/authorized_keys`
+- If no key exists in the applicable locations, the script stops before SSH hardening (to avoid lockout)
 
 ## Common Commands
 
