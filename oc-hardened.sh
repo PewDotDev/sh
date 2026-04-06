@@ -407,7 +407,7 @@ reload_ssh_service() {
 
 pre_allow_ssh_port_in_firewall() {
   log "Ensuring UFW allows ${SSH_PORT}/tcp before SSH service reload"
-  run_cmd ufw allow "${SSH_PORT}/tcp" comment 'OpenClaw SSH pre-reload'
+  run_cmd ufw allow "${SSH_PORT}/tcp"
 }
 
 remove_ufw_allow_rule_if_present() {
@@ -430,15 +430,14 @@ remove_ufw_allow_rule_if_present() {
 }
 
 configure_firewall() {
-  log "Configuring UFW"
-  run_cmd ufw --force reset
+  log "Configuring UFW (preserving existing rules)"
   run_cmd ufw --force default deny incoming
   run_cmd ufw --force default allow outgoing
-  run_cmd ufw allow "${SSH_PORT}/tcp" comment 'OpenClaw SSH'
+  run_cmd ufw allow "${SSH_PORT}/tcp"
 
   if ((ALLOW_WEB_PORTS)); then
-    run_cmd ufw allow "80/tcp" comment 'OpenClaw HTTP'
-    run_cmd ufw allow "443/tcp" comment 'OpenClaw HTTPS'
+    run_cmd ufw allow "80/tcp"
+    run_cmd ufw allow "443/tcp"
   else
     if [[ "$SSH_PORT" == "80" ]]; then
       log "Skipping removal of 80/tcp because it is configured as SSH port"
@@ -722,7 +721,7 @@ main() {
   run_openclaw_setup
 
   log "Bootstrap complete"
-  log "Default secure posture: SSH-only ingress unless --allow-web-ports is used"
+  log "Firewall posture: SSH ingress ensured, 80/443 managed by --allow-web-ports, existing UFW rules preserved"
   switch_to_target_user_shell_if_requested
 }
 

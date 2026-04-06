@@ -14,7 +14,7 @@ curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash
 
 - Creates/reuses a user (default: `openclaw`) and adds sudo access
 - Sets up SSH hardening (`PermitRootLogin no`, password auth off, key auth on)
-- Configures UFW (SSH only by default)
+- Configures UFW (ensures SSH is allowed while preserving existing rules)
 - Installs/configures `fail2ban` and `unattended-upgrades`
 - Runs OpenClaw install as the dedicated user
 - Automatically switches to the dedicated user shell after OpenClaw onboarding so you can run pairing commands (unless `--no-switch-user` is set)
