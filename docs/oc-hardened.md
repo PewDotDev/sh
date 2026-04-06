@@ -2,7 +2,7 @@
 
 Back to repo index: [`README.md`](../README.md)
 
-`oc-hardened.sh` sets up a fresh Ubuntu 22.04 or above server with a safer default config, then runs OpenClaw as a dedicated sudo user.
+`oc-hardened.sh` sets up Ubuntu 22.04 or above host with a safer default config, then runs OpenClaw as a dedicated sudo user.
 
 ## Quick Start
 

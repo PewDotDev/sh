@@ -2,4 +2,4 @@
 
 | Script                             | Purpose                                                 | Docs                                         |
 | ---------------------------------- | ------------------------------------------------------- | -------------------------------------------- |
-| [oc-hardened.sh](./oc-hardened.sh) | Harden a fresh Ubuntu 22.04 or above VPS and run OpenClaw setup. | [docs/oc-hardened.md](./docs/oc-hardened.md) |
+| [oc-hardened.sh](./oc-hardened.sh) | Harden Ubuntu 22.04 or above host and run OpenClaw setup. | [docs/oc-hardened.md](./docs/oc-hardened.md) |
