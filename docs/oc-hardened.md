@@ -57,6 +57,12 @@ Allow web ports (`80`, `443`):
 curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- --allow-web-ports
 ```
 
+Run OpenClaw beta installer:
+
+```bash
+curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- --beta
+```
+
 Dry run:
 
 ```bash
@@ -68,6 +74,7 @@ curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- --dry-run
 - `--user <name>` (default: `openclaw`)
 - `--ssh-port <port>` (default: `22`)
 - `--openclaw-cmd <cmd>` (default: `curl -fsSL https://openclaw.ai/install.sh | bash`)
+- `--beta` (use `curl -fsSL https://openclaw.ai/install.sh | bash -s -- --beta`)
 - `--authorized-key <key>`
 - `--skip-user-password` (no `passwd` prompt)
 - `--no-switch-user` (do not auto-switch to the user shell at the end)
@@ -79,6 +86,7 @@ curl -fsSL https://sh.pew.dev/oc-hardened.sh | sudo bash -s -- --dry-run
 
 - OpenClaw setup runs once per user + command hash marker: `/var/lib/openclaw-bootstrap/openclaw_cmd.<user>.sha256`.
 - Remove that marker file to force a re-run with the same command.
+- `--beta` cannot be combined with `--openclaw-cmd`.
 - `--authorized-key` must be a single valid OpenSSH public key line.
 - Even when invoked with `curl ... | sudo bash`, the script uses `/dev/tty` for password prompts and the final user switch when available.
 - In truly non-interactive environments (no `/dev/tty`), use `--skip-user-password`; switch users manually with `sudo -iu <user>`.
