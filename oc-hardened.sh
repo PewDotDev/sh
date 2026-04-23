@@ -4,7 +4,11 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 TARGET_USER="openclaw"
 SSH_PORT="22"
-OPENCLAW_CMD='curl -fsSL https://openclaw.ai/install.sh | bash'
+DEFAULT_OPENCLAW_CMD='curl -fsSL https://openclaw.ai/install.sh | bash'
+BETA_OPENCLAW_CMD='curl -fsSL https://openclaw.ai/install.sh | bash -s -- --beta'
+OPENCLAW_CMD="$DEFAULT_OPENCLAW_CMD"
+OPENCLAW_CMD_WAS_SET=0
+OPENCLAW_BETA=0
 AUTHORIZED_KEY=""
 ALLOW_WEB_PORTS=0
 DRY_RUN=0
@@ -43,6 +47,8 @@ Options (all optional):
   --ssh-port <port>      SSH daemon port and UFW allow port (default: 22)
   --openclaw-cmd <cmd>   Command run as the dedicated user
                          (default: curl -fsSL https://openclaw.ai/install.sh | bash)
+  --beta                 Use OpenClaw beta installer command
+                         (curl -fsSL https://openclaw.ai/install.sh | bash -s -- --beta)
   --authorized-key <key> Optional SSH public key to add for --user
   --skip-user-password   Do not prompt for password; keep it disabled/locked
   --no-switch-user      Do not auto-switch to the dedicated user at the end
@@ -52,6 +58,7 @@ Options (all optional):
 
 Examples:
   curl -fsSL <url> | sudo bash
+  curl -fsSL <url> | sudo bash -s -- --beta
   curl -fsSL <url> | sudo bash -s -- --user myadmin --ssh-port 2222 --allow-web-ports
   curl -fsSL <url> | sudo bash -s -- --user myadmin --authorized-key "ssh-ed25519 AAAA... me@laptop"
 USAGE
@@ -90,7 +97,12 @@ parse_args() {
       --openclaw-cmd)
         [[ $# -ge 2 ]] || die "Missing value for --openclaw-cmd"
         OPENCLAW_CMD="$2"
+        OPENCLAW_CMD_WAS_SET=1
         shift 2
+        ;;
+      --beta)
+        OPENCLAW_BETA=1
+        shift
         ;;
       --authorized-key)
         [[ $# -ge 2 ]] || die "Missing value for --authorized-key"
@@ -165,6 +177,13 @@ validate_inputs() {
   ((SSH_PORT >= 1 && SSH_PORT <= 65535)) || die "--ssh-port must be between 1 and 65535"
 
   [[ -n "${OPENCLAW_CMD// }" ]] || die "--openclaw-cmd cannot be empty"
+  if ((OPENCLAW_BETA)); then
+    if ((OPENCLAW_CMD_WAS_SET)); then
+      die "--beta cannot be combined with --openclaw-cmd"
+    fi
+    OPENCLAW_CMD="$BETA_OPENCLAW_CMD"
+  fi
+
   if [[ -n "$AUTHORIZED_KEY" ]]; then
     [[ -n "${AUTHORIZED_KEY// }" ]] || die "--authorized-key cannot be empty"
     [[ "$AUTHORIZED_KEY" != *$'\n'* ]] || die "--authorized-key must be a single line"
@@ -700,7 +719,7 @@ main() {
   [[ -n "$AUTHORIZED_KEY" ]] && authorized_key_set=1
 
   log "Starting OpenClaw VPS bootstrap"
-  log "Configuration: user=$TARGET_USER ssh_port=$SSH_PORT allow_web_ports=$ALLOW_WEB_PORTS dry_run=$DRY_RUN authorized_key_set=$authorized_key_set set_user_password=$SET_USER_PASSWORD auto_switch_user=$AUTO_SWITCH_TO_USER"
+  log "Configuration: user=$TARGET_USER ssh_port=$SSH_PORT allow_web_ports=$ALLOW_WEB_PORTS dry_run=$DRY_RUN beta=$OPENCLAW_BETA authorized_key_set=$authorized_key_set set_user_password=$SET_USER_PASSWORD auto_switch_user=$AUTO_SWITCH_TO_USER"
 
   prepare_state_dir
   install_base_packages
@@ -710,6 +729,8 @@ main() {
   set_target_user_password_if_requested
 
   ensure_target_authorized_keys "$user_home"
+  run_openclaw_setup
+
   backup_ssh_config_once
   write_ssh_hardening_config
   pre_allow_ssh_port_in_firewall
@@ -718,7 +739,6 @@ main() {
   configure_unattended_upgrades
   configure_fail2ban
   enable_required_services
-  run_openclaw_setup
 
   log "Bootstrap complete"
   log "Firewall posture: SSH ingress ensured, 80/443 managed by --allow-web-ports, existing UFW rules preserved"
