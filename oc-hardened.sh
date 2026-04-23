@@ -710,6 +710,8 @@ main() {
   set_target_user_password_if_requested
 
   ensure_target_authorized_keys "$user_home"
+  run_openclaw_setup
+
   backup_ssh_config_once
   write_ssh_hardening_config
   pre_allow_ssh_port_in_firewall
@@ -718,7 +720,6 @@ main() {
   configure_unattended_upgrades
   configure_fail2ban
   enable_required_services
-  run_openclaw_setup
 
   log "Bootstrap complete"
   log "Firewall posture: SSH ingress ensured, 80/443 managed by --allow-web-ports, existing UFW rules preserved"
